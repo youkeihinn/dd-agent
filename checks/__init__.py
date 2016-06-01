@@ -355,8 +355,6 @@ class AgentCheck(object):
         self._instance_metadata = []
         self.svc_metadata = []
         self.historate_dict = {}
-        self.proxy_settings = get_proxy(self.agentConfig)
-
 
         # Set proxy settings
         self.proxy_settings = get_proxy(self.agentConfig)
