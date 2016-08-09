@@ -6,6 +6,8 @@
 import logging
 import os
 import time
+import socket
+import struct
 
 # 3rd party
 from docker import Client
@@ -31,6 +33,7 @@ class DockerUtil:
     __metaclass__ = Singleton
 
     DEFAULT_SETTINGS = {"version": DEFAULT_VERSION}
+    DEFAULT_PROCFS_GW_PATH = "proc/net/route"
 
     def __init__(self, **kwargs):
         self._docker_root = None
@@ -105,6 +108,22 @@ class DockerUtil:
                 log.debug('Unable to parse Docker event: %s', event)
 
         return self.events, should_reload_conf
+
+    @classmethod
+    def get_gateway(cls, proc_prefix=""):
+        procfs_route = os.path.join("/", proc_prefix, cls.DEFAULT_PROCFS_GW_PATH)
+
+        try:
+            with open(procfs_route) as f:
+                for line in f.readlines():
+                    fields = line.strip().split()
+                    if fields[1] == '00000000':
+                        return socket.inet_ntoa(struct.pack('<L', int(fields[2], 16)))
+        except IOError, e:
+            log.error('Unable to open {}: %s'.format(procfs_route), e)
+
+        return None
+
 
     def get_hostname(self):
         """Return the `Name` param from `docker info` to use as the hostname"""
