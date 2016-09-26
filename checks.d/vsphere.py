@@ -588,9 +588,16 @@ class VSphereCheck(AgentCheck):
                         args=(resource, tags, depth + 1)
                     )
 
-            # ClusterComputeResource
-            elif isinstance(obj, vim.ClusterComputeResource):
-                tags.append(u"vsphere_cluster:{0}".format(obj.name))
+            # ComputeResource (parent class of CluserComputeResource)
+            elif isinstance(obj, vim.ComputeResource):
+                if isinstance(obj, vim.ClusterComputeResource):
+                    tags.append(u"vsphere_cluster:{0}".format(obj.name))
+
+                if obj.resourcePool:
+                    self.pool.apply_async(
+                        browse_mor,
+                        args=(obj.resourcePool, tags, depth + 1)
+                    )
 
                 for host in obj.host:
                     # Skip non-host
@@ -622,6 +629,27 @@ class VSphereCheck(AgentCheck):
                     self.pool.apply_async(
                         browse_mor,
                         args=(vm, tags, depth + 1)
+                    )
+
+            # Resource Pool
+            elif isinstance(obj, vim.ResourcePool):
+                # TODO: should this MOR be watched?
+                tags.append(u"vsphere_pool:{}".format(obj.name))
+                for vm in obj.vm:
+                    if vm.runtime.powerState != 'poweredOn':
+                        continue
+                    self.pool.apply_async(
+                        browse_mor,
+                        args=(vm, tags, depth + 1)
+                    )
+
+                for resource in obj.resourcePool:
+                    if not hasattr(obj.resourcePool, 'vm'):
+                        continue
+
+                    self.pool.apply_async(
+                        browse_mor,
+                        args=(resource, tags, depth + 1)
                     )
 
             # Virtual Machine
