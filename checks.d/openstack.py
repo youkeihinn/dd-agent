@@ -8,7 +8,6 @@ from urlparse import urljoin
 
 # project
 from checks import AgentCheck
-from utils.hostname import get_hostname
 from utils.proxy import get_proxy
 
 # 3p
